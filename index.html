@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!--JS libs-->
+    <script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.0/jquery-ui.min.js"></script>
+    <script src="js/extras.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/spin.js/2.3.2/spin.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.Spin/1.0.0/leaflet.spin.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/imageviewer/0.5.1/viewer.min.js"></script>
+    <script src="js/text.json"></script>
+    <!-- use local copy because it needed hacks!-->
+	
+    <!--Styles-->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css" />
+    <link rel="stylesheet" href="css/EMET-web-map.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/imageviewer/0.5.1/viewer.min.css" />
+	
+    <title>EMET Map</title>
+</head>
+<body>
+
+<div id="sidebar">
+    <div id="sidebar-content"></div>
+    <div id="legend">
+        <div class="legend-container">
+            <div class="legendTable">
+                <div class="legendTableBody">
+                    <div class="legendTableRow">
+                        <div class="legendTableCell-L"><img src="img/map_icons/hubIcon-alt.png" alt="EMET Hub icon"/></div>
+                        <div class="legendTableCell-R">EMET Hub</div>
+                    </div>
+                    <div class="legendTableRow">
+                        <div class="legendTableCell-L"><img src="img/map_icons/siteIcon-alt.png" alt="EMET Training Site icon" /></div>
+                        <div class="legendTableCell-R">EMET Training Site</div>
+                    </div>
+                    <div class="legendTableRow">
+                        <div class="legendTableCell-L"><div class="legend-connex"></div></div>
+                        <div class="legendTableCell-R">Providing emergency medicine education and training</div>
+                    </div>
+                    <div class="legendTableRow legend-historical">
+                        <div class="legendTableCell-L"><img src="img/map_icons/hubIcon-hist-alt.png" alt="EMET Hub icon" style="opacity: 0.5;"/></div>
+                        <div class="legendTableCell-R">Former Hub</div>
+                    </div>
+                    <div class="legendTableRow legend-historical">
+                        <div class="legendTableCell-L"><img src="img/map_icons/siteIcon-hist-alt.png" alt="EMET Training Site icon" style="opacity: 0.5;"/></div>
+                        <div class="legendTableCell-R">Former Training Site</div>
+                    </div>
+                    <div class="legendTableRow legend-historical">
+                        <div class="legendTableCell-L"><div class="legend-connex-hist"></div></div>
+                        <div class="legendTableCell-R">Former Connection</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="map"></div>
+
+<!--main script-->
+<script src="js/EMET-web-map.min.js"></script>
+
+</body>
+</html>
