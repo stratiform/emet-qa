@@ -417,6 +417,17 @@ var _resizeSidebar = function(){
 
 }
 
+var _featureInDisplay = function(id) {
+
+    var ret = false;
+
+    layers.display.eachLayer(function(layer){
+        if(layer.feature.properties.acem_id == id) ret = true;
+    });
+
+    return ret;
+}
+
 var triggerClickEvents = function(layer){
     /**
      * Wrapper function to fire multiple onClick events
@@ -437,6 +448,15 @@ var triggerClickEvents = function(layer){
 
     // set point type
     var pointType = layer.target.feature.properties.emet_hub_or_training_site == "EMET Hub" ? "hub" : "site";
+
+    var saveFeat = false;
+    
+    // check if feature is from display layer
+    if(layers.display.getLayers().length > 0 && _featureInDisplay(layer.target.feature.properties.acem_id)) {
+
+        // if clicked feature is in 'display' layer, save it for later
+        saveFeat = $.extend( {}, layer.target.feature );
+    }
 
     // reset layers to current filter
     _resetLayers(false);
@@ -505,37 +525,46 @@ var triggerClickEvents = function(layer){
 
             let feature = layers.emet_data.raw.features[idx2];
             
-            // if clicked feature is a site
-            if ($.inArray(feature.properties.hospital_name,
-                linkDict[layer.target.feature.properties.acem_id]) > -1) {
-
-                // add feature data to layer
-                let geoJson = {
-                    type: "FeatureCollection",
-                    features: [feature]
-                };
-                
-                layers.display.addData(geoJson);
-
             // if clicked feature is a hub
-            } else if (layer.target.feature.properties.linked_emet_hub_acem_id == feature.properties.acem_id ||
-                layer.target.feature.properties.secondary_hub_acem_id == feature.properties.acem_id) {
+            if (($.inArray(feature.properties.hospital_name,
+                linkDict[layer.target.feature.properties.acem_id]) > -1) 
+                || ($.inArray(feature.properties.hospital_name,
+                    histLinkDict[layer.target.feature.properties.acem_id]) > -1)) {
+                
+                // if the feature was clicked and saved, add it to the display layer
+                let feats = saveFeat ? [feature, saveFeat] : [feature];
 
                 // add feature data to layer
                 let geoJson = {
                     type: "FeatureCollection",
-                    features: [feature]
+                    features: feats
                 };
-                
+
                 layers.display.addData(geoJson);
+
+            // if clicked feature is a site
+            } else if (layer.target.feature.properties.linked_emet_hub_acem_id == feature.properties.acem_id ||
+                layer.target.feature.properties.secondary_hub_acem_id == feature.properties.acem_id ||
+                layer.target.feature.properties.historical_hub_acem_id == feature.properties.acem_id) {
                 
+                // if the feature was clicked and saved, add it to the display layer
+                let feats = saveFeat ? [feature, saveFeat] : [feature];
+
+                // add feature data to layer
+                let geoJson = {
+                    type: "FeatureCollection",
+                    features: feats
+                };
+
+                layers.display.addData(geoJson);
+
             }
 
         }
 
     }
 
-    // bind labels to adjacent features features
+    // bind labels to adjacent features
     layers.display.eachLayer(function(feature){ 
 
         feature.bindLabel(feature.feature.properties.hospital_name.replace(/([\w\s]{20,}?)\s?\b/g, "$1\n"), {
@@ -651,8 +680,6 @@ var filterExec = function(id, filterProp, layer, htmlProp, all, reindex, fit, to
 			toggleObj[layer] = true;
 		}
 
-    
-
     // otherwise if it's a toggle switch but is currently ON, toggle value back to "all"
     // and set option in toggle to "false" for layer
 		else if(id == "none") {
@@ -704,6 +731,7 @@ var filterExec = function(id, filterProp, layer, htmlProp, all, reindex, fit, to
     // set toggle tracker if filtering by historical
     if (filterProp == "historical") {
         toggleObj[filterProp] = "Y";
+        toggleObj.emet_hub_or_training_site = "all";
     } else if (filterProp != "state") {
         toggleObj.historical = null;
     }
@@ -883,11 +911,14 @@ var getCartoJSON = function(user, layer, map, query){
 
         // process layers containing line data
         } else if(data.features[0].geometry && data.features[0].geometry.type == "LineString"){
+
+            let year = JSON.stringify(new Date().getFullYear()).substring(2);
+
             layers[layer].raw = data;
 
             layers[layer].layer = new emetGeoJSON({"type": "FeatureCollection", "features": [] },{
                 style: _lineStyle,
-                attribution: "© 2017-18 <a href='https://www.acem.org.au/' target='blank'>ACEM</a>"
+                attribution: "© 2017-" + year + " <a href='https://www.acem.org.au/' target='blank'>ACEM</a>"
             }).addTo(map);
         }
         
