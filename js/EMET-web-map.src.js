@@ -114,7 +114,7 @@ function _lineStyle(feature) {
         opactiy: 0.9
     };
 
-    style.color = feature.properties.historical == "Y" ? colours.connex.hist : colours.connex.curr;
+    style.color = feature.properties.historical != null ? colours.connex.hist : colours.connex.curr;
 
     return style;
 
@@ -131,12 +131,12 @@ var onEachMarker = function(feature, latlng){
 
     // TODO done opt
     if(feature.properties.emet_hub_or_training_site == "EMET Training Site"){
-        if(feature.properties.historical !== 'Y') return L.marker(latlng, {icon: siteIcon, title: feature.properties.hospital_name})
+        if(feature.properties.historical == null) return L.marker(latlng, {icon: siteIcon, title: feature.properties.hospital_name})
             .setZIndexOffset(50);
         else return L.marker(latlng, {icon: siteIconHist, title: feature.properties.hospital_name})
         .setZIndexOffset(75);
     } else {
-        if(feature.properties.historical !== 'Y') return L.marker(latlng, {icon: hubIcon, title: feature.properties.hospital_name})
+        if(feature.properties.historical == null) return L.marker(latlng, {icon: hubIcon, title: feature.properties.hospital_name})
             .setZIndexOffset(100);
         else return L.marker(latlng, {icon: hubIconHist, title: feature.properties.hospital_name})
         .setZIndexOffset(100);
@@ -219,8 +219,10 @@ var createInfoHTML = function(props, pointType, state, text){
      * returns HTML str to populate div
      */
 
-    var hist = props.historical == "Y" ? true : false;
-    var histText = props.historical_desc;
+    //console.log(Object.keys(linkDict).length,linkDict,Object.keys(histLinkDict).length,histLinkDict);
+
+    var hist = props.historical != null ? true : false;
+    var histText = props.historical_desc.length > 0 ? props.historical_desc : null;
     var histConnex = props.historical_hub_acem_id;
     var name = props.hospital_name;
     var emetClass = hist ? "Historical" : props.emet_hub_or_training_site;
@@ -245,7 +247,7 @@ var createInfoHTML = function(props, pointType, state, text){
     if(histText != null) html += "<p class='desc'>" + histText + "</p>";
     html += "<div class='hosp-list'>";
     
-    // if non-historical point
+    // if non-historical site
     if (pointType == "site" && !hist) {
 
         // standard site
@@ -288,8 +290,8 @@ var createInfoHTML = function(props, pointType, state, text){
     } else if (pointType == "hub" && hist) {
         html += "<h2>"+text.hub.historical+"</h2>";
         html += "<ul>";
-        for (let x=0; x<linkDict[props.acem_id].length; x++){
-            html += "<li>" + linkDict[props.acem_id][x] + "</li>";
+        for (let x=0; x<histLinkDict[props.acem_id].length; x++){
+            html += "<li>" + histLinkDict[props.acem_id][x] + "</li>";
         }
         html += "</ul>";
     }
@@ -326,6 +328,9 @@ var createLinkDict = function(data){
         let link2 = props.secondary_hub_acem_id;
         let name = props.hospital_name;
         let id = props.acem_id;
+        let historical = props.historical != null ? true : false;
+
+        if(historical) continue;
 
         // check point type
         // if it's a site...
@@ -358,10 +363,10 @@ var createHistLinkDict = function(data){
         let props = data.features[hosp].properties;
         let type = props.emet_hub_or_training_site;
         let link1 = props.historical_hub_acem_id;
+        let link2 = props.historical != null ? props.linked_emet_hub_acem_id : false;
+        let link3 = props.historical != null? props.secondary_hub_acem_id : false;
         let name = props.hospital_name;
         let id = props.acem_id;
-
-        if(link1 === null) continue;
 
         // check point type
         // if it's a site...
@@ -370,6 +375,13 @@ var createHistLinkDict = function(data){
             // add the hosp if it is, create it if it's not
             if(link1 in dict) dict[link1].push(name);
             else dict[link1] = [name];
+
+            // check other links
+            if(link2 && link2 in dict) dict[link2].push(name);
+            else dict[link2] = [name];
+            
+            if(link3 && link3 in dict) dict[link3].push(name);
+            else dict[link3] = [name];
 
         // if it's a hub see if it exists in the dict, if not add it
         } else if(!dict[id]) dict[id] = [];
@@ -1074,8 +1086,8 @@ var createMap = function() {
 	    "ST_GeomFromGeoJSON(CONCAT('{\"type\":\"LineString\",\"coordinates\":[[',ed.longitude, ', ', ed.latitude,'],[',ec.longitude, ', ', ec.latitude,']] }')) as the_geom, " +
 	    "ec.acem_id as hub_id, " +
 	    "ed.state as state, " +
-        "case when (ed.historical = 'Y') then 'Y' when (ec.historical = 'Y') then 'Y' " +
-        "when (ed.historical_hub_acem_id is not null AND ed.historical_hub_acem_id = ec.acem_id) then 'Y' " +
+        "case when (ed.historical IS TRUE) then TRUE when (ec.historical IS TRUE) then TRUE  " +
+        "when (ed.historical_hub_acem_id is not null AND ed.historical_hub_acem_id = ec.acem_id) then TRUE " +
 		"else NULL end as historical " +
         "FROM emet_data_dev ed JOIN emet_data_dev ec ON ed.linked_emet_hub_acem_id = ec.acem_id " +
 	    "OR ed.secondary_hub_acem_id = ec.acem_id OR ed.historical_hub_acem_id = ec.acem_id";
@@ -1085,16 +1097,16 @@ var createMap = function() {
     SELECT 
         ed.acem_id as acem_id, 
         case 
-            when (ed.historical_hub_acem_id is not null AND ed.historical_hub_acem_id = ec.acem_id) then ed.historical_hub_acem_id
+            when (ed.historical_hub_acem_id is not null AND CAST(ed.historical_hub_acem_id as INTEGER) = ec.acem_id) then CAST(ed.historical_hub_acem_id as INTEGER)
             else ed.linked_emet_hub_acem_id end as linked_emet_hub_acem_id, 
         ed.secondary_hub_acem_id as secondary_hub_acem_id, 
         ST_GeomFromGeoJSON(CONCAT('{"type":"LineString","coordinates":[[',ed.longitude, ', ', ed.latitude,'],[',ec.longitude, ', ', ec.latitude,']] }')) as the_geom,
         ec.acem_id as hub_id, 
         ed.state as state, 
         case 
-            when (ed.historical = 'Y') then 'Y'
-            when (ec.historical = 'Y') then 'Y' 
-            when (ed.historical_hub_acem_id is not null AND ed.historical_hub_acem_id = ec.acem_id) then 'Y' 
+            when (ed.historical IS TRUE) then TRUE
+            when (ec.historical IS TRUE) then TRUE 
+            when (ed.historical_hub_acem_id is not null AND ed.historical_hub_acem_id = ec.acem_id) then TRUE 
             else NULL end as historical 
     FROM 
         emet_data_dev ed 
