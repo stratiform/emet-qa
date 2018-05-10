@@ -916,7 +916,7 @@ var getCartoJSON = function(user, layer, map, query){
             layers[layer].layer = new emetGeoJSON(layers.emet_data.filtering);
 
             // index points for searching
-            searchControl.indexFeatures(data, ["hospital_name","suburb","state"]);
+            searchControl.indexFeatures(layers.emet_data.filtering, ["hospital_name","suburb","state"]);
 
             // add layer to map
             layers[layer].layer.addTo(map);
